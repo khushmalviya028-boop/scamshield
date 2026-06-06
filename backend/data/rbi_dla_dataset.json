@@ -1,0 +1,168 @@
+{
+  "fetchedAt": "2026-06-06T18:15:52.028063+00:00",
+  "recordCount": 20,
+  "sourceUrl": "https://www.rbi.org.in/Scripts/PublicationReportDetails.aspx?UrlPage=&ID=1308 (test mode)",
+  "disclaimer": "This list is self-reported by regulated entities to RBI via CIMS. Inclusion confirms a claimed association with a regulated entity — it is not an endorsement of conduct or a guarantee of legitimacy.",
+  "records": [
+    {
+      "dlaName": "CashKaro",
+      "registeredEntity": "Axis Bank Limited",
+      "packageId": null,
+      "normalizedDlaName": "cashkaro",
+      "normalizedEntityName": "axis bank"
+    },
+    {
+      "dlaName": "KreditBee",
+      "registeredEntity": "IIFL Finance Limited",
+      "packageId": null,
+      "normalizedDlaName": "kreditbee",
+      "normalizedEntityName": "iifl"
+    },
+    {
+      "dlaName": "MoneyView",
+      "registeredEntity": "Whizdm Innovations Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "moneyview",
+      "normalizedEntityName": "whizdm innovations"
+    },
+    {
+      "dlaName": "LazyPay",
+      "registeredEntity": "PayU Finance India Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "lazypay",
+      "normalizedEntityName": "payu"
+    },
+    {
+      "dlaName": "PaySense",
+      "registeredEntity": "PaySense Services India Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "paysense",
+      "normalizedEntityName": "paysense"
+    },
+    {
+      "dlaName": "EarlySalary",
+      "registeredEntity": "IDFC First Bank Limited",
+      "packageId": null,
+      "normalizedDlaName": "earlysalary",
+      "normalizedEntityName": "idfc first bank"
+    },
+    {
+      "dlaName": "Stashfin",
+      "registeredEntity": "Stashfin Credit Line Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "stashfin",
+      "normalizedEntityName": "stashfin credit line"
+    },
+    {
+      "dlaName": "Navi",
+      "registeredEntity": "Navi Finserv Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "navi",
+      "normalizedEntityName": "navi"
+    },
+    {
+      "dlaName": "mPokket",
+      "registeredEntity": "mPokket Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "mpokket",
+      "normalizedEntityName": "mpokket"
+    },
+    {
+      "dlaName": "SlicePay",
+      "registeredEntity": "Quadrillion Finance Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "slicepay",
+      "normalizedEntityName": "quadrillion"
+    },
+    {
+      "dlaName": "Fibe",
+      "registeredEntity": "Social Worth Technologies Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "fibe",
+      "normalizedEntityName": "social worth"
+    },
+    {
+      "dlaName": "SmartCoin",
+      "registeredEntity": "SmartCoin Financials Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "smartcoin",
+      "normalizedEntityName": "smartcoin financials"
+    },
+    {
+      "dlaName": "CreditBee",
+      "registeredEntity": "IIFL Finance Limited",
+      "packageId": null,
+      "normalizedDlaName": "creditbee",
+      "normalizedEntityName": "iifl"
+    },
+    {
+      "dlaName": "Dhani Loans",
+      "registeredEntity": "Indiabulls Consumer Finance Ltd",
+      "packageId": null,
+      "normalizedDlaName": "dhani loans",
+      "normalizedEntityName": "indiabulls consumer"
+    },
+    {
+      "dlaName": "Jupiter",
+      "registeredEntity": "Federal Bank Limited",
+      "packageId": null,
+      "normalizedDlaName": "jupiter",
+      "normalizedEntityName": "federal bank"
+    },
+    {
+      "dlaName": "Fi Money",
+      "registeredEntity": "Federal Bank Limited",
+      "packageId": null,
+      "normalizedDlaName": "fi money",
+      "normalizedEntityName": "federal bank"
+    },
+    {
+      "dlaName": "Freo",
+      "registeredEntity": "MUFG Bank Ltd",
+      "packageId": null,
+      "normalizedDlaName": "freo",
+      "normalizedEntityName": "mufg bank"
+    },
+    {
+      "dlaName": "Kissht",
+      "registeredEntity": "OnEMI Technology Solutions Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "kissht",
+      "normalizedEntityName": "onemi"
+    },
+    {
+      "dlaName": "Uni Cards",
+      "registeredEntity": "Liquiloans Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "uni cards",
+      "normalizedEntityName": "liquiloans"
+    },
+    {
+      "dlaName": "True Balance",
+      "registeredEntity": "True Credits Pvt Ltd",
+      "packageId": null,
+      "normalizedDlaName": "true balance",
+      "normalizedEntityName": "true credits"
+    }
+  ],
+  "nbfcList": [
+    "Axis Bank Limited",
+    "IIFL Finance Limited",
+    "Whizdm Innovations Pvt Ltd",
+    "PayU Finance India Pvt Ltd",
+    "PaySense Services India Pvt Ltd",
+    "IDFC First Bank Limited",
+    "Stashfin Credit Line Pvt Ltd",
+    "Navi Finserv Pvt Ltd",
+    "mPokket Pvt Ltd",
+    "Quadrillion Finance Pvt Ltd",
+    "Social Worth Technologies Pvt Ltd",
+    "SmartCoin Financials Pvt Ltd",
+    "Indiabulls Consumer Finance Ltd",
+    "Federal Bank Limited",
+    "MUFG Bank Ltd",
+    "OnEMI Technology Solutions Pvt Ltd",
+    "Liquiloans Pvt Ltd",
+    "True Credits Pvt Ltd"
+  ]
+}

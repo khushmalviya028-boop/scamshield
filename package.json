@@ -1,0 +1,15 @@
+{
+  "name": "scamshield",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ScamShield — cross-platform scam app detection",
+  "scripts": {
+    "mobile": "cd apps/mobile && npx expo start",
+    "backend": "cd backend && npm run dev",
+    "backend:install": "cd backend && npm install",
+    "mobile:install": "cd apps/mobile && npm install",
+    "engine:test": "cd engine && npm test",
+    "install:all": "cd engine && npm install && cd ../backend && npm install && cd ../apps/mobile && npm install",
+    "setup": "npm run install:all"
+  }
+}
