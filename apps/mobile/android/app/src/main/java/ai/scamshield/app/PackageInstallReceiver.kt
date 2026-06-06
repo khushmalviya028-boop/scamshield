@@ -38,7 +38,7 @@ class PackageInstallReceiver : BroadcastReceiver() {
                 } else {
                     ScamApiClient.verify(AppSignals.minimal(packageName, appName, "unknown"))
                 }
-                ScamNotificationManager.showVerdict(context, appName, packageName, result)
+                ScamNotificationManager.showVerdict(context, appName, packageName, result, signals?.rawPermissions ?: emptyList())
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Scan failed for $packageName", e)
                 ScamNotificationManager.showError(context, appName, packageName)

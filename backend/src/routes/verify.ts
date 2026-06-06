@@ -4,6 +4,7 @@ import { getRBIDataset } from '../services/rbi';
 import { score } from '../services/scoring';
 import { scrapePlayStore, scrapeAppStore, StoreScrapedData } from '../services/store-scraper';
 import { checkMalwareBazaar } from '../services/malwarebazaar';
+import { searchPlayStoreByName } from '../services/store-scraper';
 import db from '../db/database';
 import { logger } from '../lib/logger';
 import { VerifyRequestInput } from '../lib/schemas';
@@ -46,6 +47,15 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     let resolvedPackageId = body.packageId;
     if (!resolvedPackageId && body.url) {
       resolvedPackageId = extractPackageIdFromUrl(body.url);
+    }
+
+    // If still no package ID, try searching Play Store by name
+    if (!resolvedPackageId && !body.bundleId && body.appName) {
+      const found = await searchPlayStoreByName(body.appName);
+      if (found) {
+        resolvedPackageId = found;
+        logger.info('Resolved package ID from Play Store name search', { appName: body.appName, packageId: found });
+      }
     }
 
     // Fetch real store listing and MalwareBazaar check in parallel

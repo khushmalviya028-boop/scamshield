@@ -27,6 +27,32 @@ function daysSince(dateStr: string): number | undefined {
   return Math.max(0, Math.floor((Date.now() - ms) / 86_400_000));
 }
 
+const normalizeTitle = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Search Play Store by app name and return a package ID ONLY on exact title match.
+ * "Exact" means normalized (lowercase, alphanumeric only) titles are identical.
+ *
+ * Returns null on any non-exact result so we never score an unrelated app's
+ * store data against a different app's install.
+ */
+export async function searchPlayStoreByName(appName: string): Promise<string | null> {
+  const target = normalizeTitle(appName);
+  if (target.length < 3) return null;
+
+  try {
+    const results = await gplay.search({ term: appName, num: 5, lang: 'en', country: 'in' });
+    const exact = results?.find((r: any) => normalizeTitle(r.title ?? '') === target);
+    if (exact) {
+      logger.info('Play Store exact name match found', { appName, packageId: exact.appId });
+    }
+    return exact?.appId ?? null;
+  } catch (err: any) {
+    logger.warn('Play Store name search failed', { appName, err: err.message });
+    return null;
+  }
+}
+
 export async function scrapePlayStore(packageId: string): Promise<StoreScrapedData> {
   const [appResult, permResult, reviewResult] = await Promise.allSettled([
     gplay.app({ appId: packageId, lang: 'en', country: 'in' }),

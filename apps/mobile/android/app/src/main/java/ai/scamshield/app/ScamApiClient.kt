@@ -20,7 +20,7 @@ data class ScanResult(
 
 object ScamApiClient {
 
-    private const val API_URL = "https://api.scamshield.ai"
+    private val API_URL = if (BuildConfig.DEBUG) "http://10.0.2.2:3001" else "https://api.scamshield.ai"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)

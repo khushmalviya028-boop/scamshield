@@ -451,4 +451,33 @@ describe('ScamShield Scoring Engine', () => {
     expect(result.score).toBe(100);
     expect(result.band).toBe('high-risk');
   });
+
+  // ------------------------------------------------------------------ //
+  // 18. Sideloaded APK claiming a known Play Store package ID — impersonation
+  // ------------------------------------------------------------------ //
+  test('sideloaded APK claiming known package ID fires sideloaded_impersonates_known_app', () => {
+    // A malicious APK downloaded outside the store but claiming com.kreditbee.app
+    const profile: AppProfile = {
+      appName: 'KreditBee',
+      packageId: 'com.kreditbee.app',
+      isSideloaded: true,
+      notFoundInPlayStore: false, // store scrape succeeded — package ID exists on Play Store
+      isFinanceApp: true,
+    };
+    const result = score(profile, MOCK_DATASET);
+    expect(result.firedSignals.some((s) => s.id === 'sideloaded_impersonates_known_app')).toBe(true);
+    const signal = result.firedSignals.find((s) => s.id === 'sideloaded_impersonates_known_app')!;
+    expect(signal.points).toBe(45);
+  });
+
+  test('non-sideloaded app with known package ID does NOT fire impersonation signal', () => {
+    const profile: AppProfile = {
+      appName: 'KreditBee',
+      packageId: 'com.kreditbee.app',
+      isSideloaded: false,
+      isFinanceApp: true,
+    };
+    const result = score(profile, MOCK_DATASET);
+    expect(result.firedSignals.some((s) => s.id === 'sideloaded_impersonates_known_app')).toBe(false);
+  });
 });

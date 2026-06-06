@@ -47,7 +47,7 @@ class ScanService : Service() {
                 val signals = AppSignalCollector.collectFromApk(applicationContext, apkFile.absolutePath)
                     ?: AppSignals.minimal(baseName.toFakePackageId("download"), baseName, "sideloaded")
                 val result = ScamApiClient.verify(signals)
-                ScamNotificationManager.showVerdict(applicationContext, signals.appName, signals.packageId, result)
+                ScamNotificationManager.showVerdict(applicationContext, signals.appName, signals.packageId, result, signals.rawPermissions)
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Scan failed for APK: ${apkFile.absolutePath}", e)
             }

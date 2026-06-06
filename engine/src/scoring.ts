@@ -269,6 +269,13 @@ export function score(profile: AppProfile, dataset: RBIDataset): ScoreResult {
     rawScore += s.points;
   }
 
+  // Sideloaded APK claiming a known Play Store package ID — impersonation vector
+  if (profile.isSideloaded && profile.packageId && !profile.notFoundInPlayStore) {
+    const s = makeSignal('SIDELOADED_IMPERSONATES_KNOWN_APP', true);
+    signals.push(s);
+    rawScore += s.points;
+  }
+
   // Small APK for a finance app — legitimate banking/lending apps are rarely under 8 MB
   if (profile.isFinanceApp && profile.apkSizeBytes !== undefined && profile.apkSizeBytes < 8_000_000) {
     const s = makeSignal('SMALL_APK_FINANCE', true);

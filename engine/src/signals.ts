@@ -234,6 +234,15 @@ export const SIGNAL_DEFS: Record<string, SignalTemplate> = {
     points: 100,
     severity: 'critical',
   },
+  SIDELOADED_IMPERSONATES_KNOWN_APP: {
+    id: 'sideloaded_impersonates_known_app',
+    name: 'Sideloaded APK claims identity of a Play Store app',
+    description:
+      'This APK was downloaded outside the Play Store but claims the same package ID as a legitimate app on the Play Store. A tampered or trojanised copy of a known app is a common malware distribution technique. The APK may have been modified to add spyware, credential stealers, or ransomware while keeping the original app\'s branding intact.',
+    icon: '🎭',
+    points: 45,
+    severity: 'critical',
+  },
 };
 
 export function makeSignal(key: keyof typeof SIGNAL_DEFS, fired: boolean): Signal {

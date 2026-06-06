@@ -50,7 +50,7 @@ class DownloadReceiver : BroadcastReceiver() {
                 val signals = AppSignalCollector.collectFromApk(context, apkPath)
                     ?: AppSignals.minimal(fileName.toFakePackageId("download"), fileName, "sideloaded")
                 val result = ScamApiClient.verify(signals)
-                ScamNotificationManager.showVerdict(context, signals.appName, signals.packageId, result)
+                ScamNotificationManager.showVerdict(context, signals.appName, signals.packageId, result, signals.rawPermissions)
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Scan failed for DownloadManager APK", e)
             }
