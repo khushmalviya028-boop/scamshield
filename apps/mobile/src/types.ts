@@ -49,6 +49,6 @@ export type RootStackParamList = {
   Scanning: { appName: string; packageId?: string; url?: string; request: VerifyRequest };
   Verdict: { result: ScoreResult };
   TakeDown: { result: ScoreResult };
-  Report: { appName: string; packageId?: string };
+  Report: { appName: string; packageId?: string; result?: ScoreResult };
   Emergency: undefined;
 };

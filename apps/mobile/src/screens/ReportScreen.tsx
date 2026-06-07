@@ -9,12 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, ScoreResult } from '../types';
 import { colors, spacing, fontSize, radius } from '../theme';
 import { submitReport } from '../api/reports';
 
@@ -25,12 +27,58 @@ type Props = {
 
 const REPORT_TYPES = ['Scam', 'Harassment', 'Fake', 'Data Theft'];
 
+function buildPlayStoreReportText(appName: string, packageId: string | undefined, result?: ScoreResult): string {
+  const lines: string[] = [];
+  const band = result?.band;
+  const score = result?.score;
+  const gate = result?.gate;
+
+  lines.push(`This app has been identified as HIGH RISK (Score: ${score ?? '?'}/100) by ScamShield.`);
+  lines.push('');
+  lines.push('Signals detected:');
+
+  if (gate === 'unverified' || gate === 'unauthorized') {
+    lines.push('• Not found in the RBI Digital Lending App (DLA) directory — operating without regulatory authorisation violates RBI/2022-23/111');
+  }
+  result?.firedSignals?.forEach((s) => {
+    lines.push(`• ${s.name}: ${s.description.slice(0, 120)}`);
+  });
+  if (!result?.firedSignals?.length) {
+    lines.push('• Multiple risk signals detected — see ScamShield report');
+  }
+
+  lines.push('');
+  lines.push('Please remove this app from the Play Store to protect users from financial fraud, data theft, and potential borrower harassment.');
+  lines.push('');
+  lines.push(`Package ID: ${packageId ?? 'unknown'}`);
+  lines.push('Verified by ScamShield · scamshield.ai');
+  return lines.join('\n');
+}
+
 export default function ReportScreen({ navigation, route }: Props) {
-  const { appName, packageId } = route.params;
+  const { appName, packageId, result } = route.params;
   const [selectedType, setSelectedType] = useState('Scam');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const playStoreReportText = buildPlayStoreReportText(appName, packageId, result);
+
+  const handleCopyReportText = () => {
+    Clipboard.setString(playStoreReportText);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleOpenPlayStore = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const url = packageId
+      ? `https://play.google.com/store/apps/details?id=${packageId}`
+      : 'https://play.google.com/store/apps';
+    Linking.openURL(url);
+  };
 
   const handleSubmit = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -152,6 +200,26 @@ export default function ReportScreen({ navigation, route }: Props) {
             <Text style={styles.disclaimerText}>
               🔒 Your report is anonymised before escalation. No personal data is shared without consent.
             </Text>
+          </View>
+
+          {/* Google Play Report section */}
+          <View style={styles.playStoreSection}>
+            <Text style={styles.playStoreSectionTitle}>🚩 Also Report on Google Play</Text>
+            <Text style={styles.playStoreSectionSub}>
+              Copy the pre-filled report text below, then open the app on Google Play and tap{' '}
+              <Text style={{ fontWeight: '700', color: colors.textSecondary }}>"Flag as inappropriate"</Text>.
+            </Text>
+            <View style={styles.reportTextBox}>
+              <Text style={styles.reportTextContent} selectable>{playStoreReportText}</Text>
+            </View>
+            <View style={styles.playStoreBtns}>
+              <TouchableOpacity style={styles.copyBtn} onPress={handleCopyReportText} activeOpacity={0.8}>
+                <Text style={styles.copyBtnText}>{copied ? '✅  Copied!' : '📋  Copy Report Text'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.openPlayStoreBtn} onPress={handleOpenPlayStore} activeOpacity={0.8}>
+                <Text style={styles.openPlayStoreBtnText}>Open on Play Store ↗</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Submit button */}
@@ -304,6 +372,73 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     lineHeight: 19,
+  },
+  playStoreSection: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: '#EF444410',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#EF444430',
+    gap: spacing.sm,
+  },
+  playStoreSectionTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    color: colors.highRisk,
+    letterSpacing: 0.2,
+  },
+  playStoreSectionSub: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  reportTextBox: {
+    backgroundColor: '#0B0F1A',
+    borderRadius: radius.md,
+    padding: spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: '#EF444420',
+  },
+  reportTextContent: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  playStoreBtns: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  copyBtn: {
+    flex: 1,
+    backgroundColor: '#EF444420',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EF444440',
+  },
+  copyBtnText: {
+    color: colors.highRisk,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  openPlayStoreBtn: {
+    flex: 1,
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  openPlayStoreBtnText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
   },
   submitBtn: {
     marginHorizontal: spacing.md,

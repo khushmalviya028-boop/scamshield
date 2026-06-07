@@ -17,10 +17,10 @@ const BAND_COLOR: Record<RiskBand, string> = {
 function NativeGauge({ score, band }: RiskGaugeProps) {
   const { default: Svg, Path, Circle } = require('react-native-svg');
 
-  const W = 260, H = 175;
-  const CX = W / 2, CY = 160;
-  const R = 108;
-  const STROKE = 20;
+  const W = 240, H = 135;
+  const CX = W / 2, CY = 115;
+  const R = 98;
+  const STROKE = 18;
   const color = BAND_COLOR[band];
 
   function polarToXY(angleDeg: number, radius = R) {
@@ -96,7 +96,7 @@ export default function RiskGauge({ score, band }: RiskGaugeProps) {
 const styles = StyleSheet.create({
   gaugeWrap: { alignItems: 'center', justifyContent: 'center' },
   scoreOverlay: { position: 'absolute', bottom: 0, alignItems: 'center' },
-  scoreNum: { fontSize: 56, fontWeight: '900', letterSpacing: -3, lineHeight: 60 },
+  scoreNum: { fontSize: 52, fontWeight: '900', letterSpacing: -3, lineHeight: 56 },
   scoreOf: { fontSize: 12, color: '#64748B', fontWeight: '600', letterSpacing: 0.5, marginTop: 2 },
   webWrap: { alignItems: 'center', gap: 16 },
   webCircle: {

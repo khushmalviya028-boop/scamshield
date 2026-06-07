@@ -68,7 +68,7 @@ export default function VerdictScreen({ navigation, route }: Props) {
 
   const handleReport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate('Report', { appName: result.appName, packageId: result.packageId });
+    navigation.navigate('Report', { appName: result.appName, packageId: result.packageId, result });
   };
 
   const handleVerifyAnother = () => {
@@ -248,7 +248,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   gaugeContainer: {
-    marginVertical: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   shareBtn: {
     backgroundColor: '#FFFFFF12',
