@@ -59,35 +59,44 @@ object ScamNotificationManager {
         permissions: List<String> = emptyList(),
         scanKey: String = "",
     ) {
-        // Cancel the scanning notification — try all possible keys: original filename (scanKey),
-        // packageId, and appName, since any of these may have been used when posting
+        // Cancel the scanning notification
         if (scanKey.isNotEmpty()) context.nm().cancel(scanKey.hashCode() + NOTIF_SCAN_BASE)
         context.nm().cancel(packageId.hashCode() + NOTIF_SCAN_BASE)
         context.nm().cancel(appName.hashCode() + NOTIF_SCAN_BASE)
 
         val overlayIntent = VerdictOverlayActivity.buildIntent(context, appName, packageId, result, permissions, isScanning = false)
-        val pi = PendingIntent.getActivity(
-            context, packageId.hashCode(),
-            overlayIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
 
-        val notif = NotificationCompat.Builder(context, CHANNEL_ALERT)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("ScamShield: ${result.verdictLabel}")
-            .setContentText("$appName — tap to see full report")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setAutoCancel(true)
-            .setFullScreenIntent(pi, true)
-            .setContentIntent(pi)
-            .build()
-
-        context.nm().notify(packageId.hashCode(), notif)
-
-        // Belt-and-suspenders: also try direct Activity start (works when app is foregrounded
-        // or when USE_FULL_SCREEN_INTENT permission is granted)
-        try { context.startActivity(overlayIntent) } catch (_: Exception) {}
+        // Launch overlay directly — SYSTEM_ALERT_WINDOW lets us start activities from the
+        // background service; FLAG_TURN_SCREEN_ON + FLAG_SHOW_WHEN_LOCKED in the activity
+        // handle the screen-off / lock-screen case, so no heads-up notification is needed.
+        try {
+            context.startActivity(overlayIntent)
+        } catch (_: Exception) {
+            // Fallback: post a coloured notification if direct launch is blocked
+            val pi = PendingIntent.getActivity(
+                context, packageId.hashCode(),
+                overlayIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            val accentColor = when (result.band) {
+                RiskBand.HIGH_RISK -> Color.rgb(220, 20, 20)
+                RiskBand.CAUTION   -> Color.rgb(220, 130, 0)
+                else               -> Color.rgb(30, 160, 60)
+            }
+            val notif = NotificationCompat.Builder(context, CHANNEL_ALERT)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("ScamShield: ${result.verdictLabel}")
+                .setContentText("$appName — tap to see full report")
+                .setColor(accentColor)
+                .setColorized(result.band == RiskBand.HIGH_RISK)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(true)
+                .setFullScreenIntent(pi, true)
+                .setContentIntent(pi)
+                .build()
+            context.nm().notify(packageId.hashCode(), notif)
+        }
     }
 
     fun showError(context: Context, appName: String, packageId: String) {}
