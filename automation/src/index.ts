@@ -15,6 +15,8 @@ const NO_PREVIEW = ARGS.has('--no-preview'); // skip opening browser
 const DELAY_MS = parseInt(process.env.SCRAPE_DELAY_MS ?? '1200');
 const MAX_APPS = parseInt(process.env.MAX_APPS ?? '500');
 const MIN_SCORE = parseInt(process.env.MIN_RISK_SCORE ?? '40');
+const MIN_AGE_DAYS = parseInt(process.env.MIN_APP_AGE_DAYS ?? '20');
+const MAX_AGE_DAYS = parseInt(process.env.MAX_APP_AGE_DAYS ?? '30');
 const RBI_PATH = process.env.RBI_DATASET_PATH ?? '../backend/data/rbi_dla_dataset.json';
 const OUTPUT_DIR = path.join(__dirname, '../outputs');
 
@@ -52,7 +54,14 @@ async function main() {
 
   // 4. Filter
   const flagged = scored
-    .filter((a) => (a.gate === 'unverified' || a.gate === 'unauthorized') && a.riskScore >= MIN_SCORE)
+    .filter(
+      (a) =>
+        (a.gate === 'unverified' || a.gate === 'unauthorized') &&
+        a.riskScore >= MIN_SCORE &&
+        a.publishedDaysAgo !== undefined &&
+        a.publishedDaysAgo >= MIN_AGE_DAYS &&
+        a.publishedDaysAgo <= MAX_AGE_DAYS,
+    )
     .sort((a, b) => b.riskScore - a.riskScore);
 
   const authorized = scored.filter((a) => a.gate === 'authorized').length;
@@ -60,7 +69,8 @@ async function main() {
   console.log('\n── Results ──────────────────────────────────────────────');
   console.log(`   Total scanned:             ${rawApps.length}`);
   console.log(`   RBI Authorised:            ${authorized}`);
-  console.log(`   Flagged (NOT on RBI list): ${flagged.length}`);
+  console.log(`   Flagged (NOT on RBI list,`);
+  console.log(`   ${MIN_AGE_DAYS}–${MAX_AGE_DAYS} days old):  ${flagged.length}`);
   console.log('─────────────────────────────────────────────────────────\n');
 
   if (flagged.length === 0) {
