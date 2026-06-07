@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -106,6 +107,30 @@ class MainActivity : ReactActivity() {
       .show()
   }
 
+  // ── All-files access (MANAGE_EXTERNAL_STORAGE) ─────────────────────────────
+
+  private fun promptAllFilesAccess() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+    if (Environment.isExternalStorageManager()) return
+    val prefs = getSharedPreferences("scamshield", MODE_PRIVATE)
+    if (prefs.getBoolean("all_files_prompted", false)) return
+    prefs.edit().putBoolean("all_files_prompted", true).apply()
+    AlertDialog.Builder(this)
+      .setTitle("Allow APK File Scanning")
+      .setMessage(
+        "ScamShield needs \"All files access\" to read APK files you download and check their permissions for malware, spyware, and predatory loan app behaviour.\n\n" +
+        "Without this, ScamShield cannot scan apps downloaded outside the Play Store."
+      )
+      .setPositiveButton("Grant Access") { _, _ ->
+        startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+          data = android.net.Uri.parse("package:$packageName")
+        })
+      }
+      .setNegativeButton("Skip", null)
+      .setCancelable(false)
+      .show()
+  }
+
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,6 +140,7 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
     if (BuildConfig.DEBUG) intent?.getStringExtra("debug_scan")?.let { triggerTestScan(it) }
     requestNotificationPermission()
+    promptAllFilesAccess()
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
       // On older Android, notifications don't need a runtime grant — go straight to accessibility prompt
       promptAccessibilityOnce()

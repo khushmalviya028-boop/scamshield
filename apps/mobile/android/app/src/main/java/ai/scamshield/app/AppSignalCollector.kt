@@ -1,10 +1,15 @@
 package ai.scamshield.app
 
+import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.RequiresApi
+import java.io.File
 import java.security.MessageDigest
 
 data class AppSignals(
@@ -48,19 +53,53 @@ object AppSignalCollector {
     private const val TAG = "ScamShield"
 
     fun collectFromApk(context: Context, apkFilePath: String): AppSignals? {
+        val apkFile = File(apkFilePath)
         val pm = context.packageManager
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_SERVICES
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNATURES or PackageManager.GET_SERVICES
+        }
+        if (apkFile.canRead()) return parseApk(pm, apkFilePath, apkFile, flags)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return parseViaMediaStore(context, pm, apkFile, flags)
+        }
+        Log.w(TAG, "Cannot read APK at $apkFilePath")
+        return null
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun parseViaMediaStore(context: Context, pm: PackageManager, apkFile: File, flags: Int): AppSignals? {
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val uri = context.contentResolver.query(
+            collection,
+            arrayOf(MediaStore.Downloads._ID),
+            "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
+            arrayOf(apkFile.name),
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) ContentUris.withAppendedId(collection, cursor.getLong(0)) else null
+        } ?: run {
+            Log.w(TAG, "APK not found in MediaStore: ${apkFile.name}")
+            return null
+        }
         return try {
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_SERVICES
-            } else {
-                @Suppress("DEPRECATION")
-                PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNATURES or PackageManager.GET_SERVICES
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                parseApk(pm, "/proc/self/fd/${pfd.fd}", apkFile, flags)
             }
-            val info = pm.getPackageArchiveInfo(apkFilePath, flags) ?: return null
-            // Required so getApplicationLabel can resolve resources from the uninstalled APK
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore parse failed for ${apkFile.name}", e)
+            null
+        }
+    }
+
+    private fun parseApk(pm: PackageManager, readPath: String, originalFile: File, flags: Int): AppSignals? {
+        return try {
+            val info = pm.getPackageArchiveInfo(readPath, flags) ?: return null
             info.applicationInfo?.let {
-                it.sourceDir = apkFilePath
-                it.publicSourceDir = apkFilePath
+                it.sourceDir = originalFile.absolutePath
+                it.publicSourceDir = originalFile.absolutePath
             }
             val appInfo = info.applicationInfo ?: return null
             val packageName = info.packageName
@@ -86,11 +125,11 @@ object AppSignalCollector {
                 dangerousPermissionCount = countDangerousPermissions(permSet),
                 declaredServicesCount = info.services?.size ?: 0,
                 rawPermissions = permissions,
-                apkSizeBytes = java.io.File(apkFilePath).takeIf { it.exists() }?.length(),
-                apkSha256 = computeSha256(apkFilePath),
+                apkSizeBytes = originalFile.takeIf { it.exists() }?.length(),
+                apkSha256 = computeSha256(originalFile.absolutePath),
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Could not parse APK at $apkFilePath", e)
+            Log.w(TAG, "Could not parse APK at $readPath", e)
             null
         }
     }

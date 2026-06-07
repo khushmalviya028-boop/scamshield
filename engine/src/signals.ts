@@ -225,6 +225,15 @@ export const SIGNAL_DEFS: Record<string, SignalTemplate> = {
     points: 10,
     severity: 'medium',
   },
+  INSTALL_PACKAGES_SIDELOADED: {
+    id: 'install_packages_sideloaded',
+    name: 'Can install other APKs — sideloaded',
+    description:
+      'This sideloaded APK requests permission to install additional packages silently. This is the primary technique used by dropper malware to install spyware, adware, or ransomware in the background after initial install.',
+    icon: '📦',
+    points: 25,
+    severity: 'critical',
+  },
   MALWARE_HASH_LISTED: {
     id: 'malware_hash_listed',
     name: 'APK hash found in malware database',

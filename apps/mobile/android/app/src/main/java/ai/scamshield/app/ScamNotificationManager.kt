@@ -12,6 +12,8 @@ import androidx.core.app.NotificationCompat
 object ScamNotificationManager {
 
     private const val CHANNEL_MONITOR = "scamshield_monitor"
+    private const val CHANNEL_ALERT   = "scamshield_alert"
+    private const val NOTIF_SCAN_BASE  = 8000
 
     private fun Context.nm() =
         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -21,6 +23,14 @@ object ScamNotificationManager {
             NotificationChannel(CHANNEL_MONITOR, "ScamShield Monitor", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "Persistent monitor status"
                 setShowBadge(false)
+            }
+        )
+        context.nm().createNotificationChannel(
+            NotificationChannel(CHANNEL_ALERT, "ScamShield Alerts", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Scam APK download and verdict alerts"
+                enableLights(true)
+                lightColor = Color.RED
+                enableVibration(true)
             }
         )
     }
@@ -39,46 +49,94 @@ object ScamNotificationManager {
             .build()
     }
 
-    /** Called when scan starts — shows a brief scanning overlay (no-op, scan is fast). */
-    fun showChecking(context: Context, appName: String, packageId: String) {
-        // Intentionally lightweight — the full overlay fires on verdict
-    }
+    fun showChecking(context: Context, appName: String, packageId: String) {}
 
-    /**
-     * Shows a full-screen overlay popup with risk, score, permissions and action buttons.
-     * This fires over any app the user is in — no notification centre required.
-     */
     fun showVerdict(
         context: Context,
         appName: String,
         packageId: String,
         result: ScanResult,
         permissions: List<String> = emptyList(),
+        scanKey: String = "",
     ) {
-        VerdictOverlayActivity.launch(context, appName, packageId, result, permissions)
+        // Cancel the scanning notification — try all possible keys: original filename (scanKey),
+        // packageId, and appName, since any of these may have been used when posting
+        if (scanKey.isNotEmpty()) context.nm().cancel(scanKey.hashCode() + NOTIF_SCAN_BASE)
+        context.nm().cancel(packageId.hashCode() + NOTIF_SCAN_BASE)
+        context.nm().cancel(appName.hashCode() + NOTIF_SCAN_BASE)
+
+        val overlayIntent = VerdictOverlayActivity.buildIntent(context, appName, packageId, result, permissions, isScanning = false)
+        val pi = PendingIntent.getActivity(
+            context, packageId.hashCode(),
+            overlayIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
+        val notif = NotificationCompat.Builder(context, CHANNEL_ALERT)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("ScamShield: ${result.verdictLabel}")
+            .setContentText("$appName — tap to see full report")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setFullScreenIntent(pi, true)
+            .setContentIntent(pi)
+            .build()
+
+        context.nm().notify(packageId.hashCode(), notif)
+
+        // Belt-and-suspenders: also try direct Activity start (works when app is foregrounded
+        // or when USE_FULL_SCREEN_INTENT permission is granted)
+        try { context.startActivity(overlayIntent) } catch (_: Exception) {}
     }
 
-    fun showError(context: Context, appName: String, packageId: String) {
-        // Silently skip — a failed scan shouldn't alarm the user unnecessarily
-    }
+    fun showError(context: Context, appName: String, packageId: String) {}
 
     fun showApkDownloadWarning(context: Context, fileName: String) {
-        // APK download warning fires immediately — show a brief overlay
-        val warning = ScanResult(
-            appName = fileName,
-            packageId = "",
-            score = 50,
-            band = RiskBand.CAUTION,
-            verdictLabel = "APK from outside Play Store",
-            recommendedAction = "This APK was downloaded directly — not from the Play Store. " +
-                "ScamShield is scanning it now. Do NOT install until the result appears.",
+        val overlayIntent = VerdictOverlayActivity.buildScanningIntent(context, fileName)
+        val pi = PendingIntent.getActivity(
+            context, fileName.hashCode(),
+            overlayIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        VerdictOverlayActivity.launch(context, fileName, "", warning)
+
+        val notif = buildScanProgressNotif(context, fileName, elapsedSeconds = 0, pi)
+        context.nm().notify(fileName.hashCode() + NOTIF_SCAN_BASE, notif)
+        try { context.startActivity(overlayIntent) } catch (_: Exception) {}
     }
 
-    fun showPreInstallCheck(context: Context, appName: String) {
-        // Pre-install check — no overlay needed, verdict fires when ready
+    fun updateScanProgress(context: Context, fileName: String, elapsedSeconds: Int) {
+        val pi = PendingIntent.getActivity(
+            context, fileName.hashCode(),
+            VerdictOverlayActivity.buildScanningIntent(context, fileName),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        context.nm().notify(
+            fileName.hashCode() + NOTIF_SCAN_BASE,
+            buildScanProgressNotif(context, fileName, elapsedSeconds, pi),
+        )
     }
 
-    private fun notifId(packageId: String) = packageId.hashCode()
+    private fun buildScanProgressNotif(
+        context: Context, fileName: String, elapsedSeconds: Int, pi: PendingIntent
+    ): android.app.Notification {
+        val subtitle = if (elapsedSeconds == 0) "Checking permissions · RBI registry · malware database"
+                       else "Checking permissions · RBI registry · malware database — ${elapsedSeconds}s"
+        return NotificationCompat.Builder(context, CHANNEL_ALERT)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("🔍 Scanning $fileName")
+            .setContentText(subtitle)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(subtitle))
+            .setProgress(0, 0, true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(false)
+            .setFullScreenIntent(pi, true)
+            .setContentIntent(pi)
+            .build()
+    }
+
+    fun showPreInstallCheck(context: Context, appName: String) {}
 }

@@ -110,7 +110,7 @@ function getRecommendedAction(band: RiskBand, gate: RBIGate): string {
     return 'DO NOT proceed. Do not open, login, or share any information with this app. If already installed, uninstall immediately. If you have been scammed, call the National Cyber Crime Helpline 1930 or file a complaint at cybercrime.gov.in.';
   }
   if (band === 'caution') {
-    return "Exercise caution. Independently verify this app before sharing any personal or financial data. Check the developer's credentials and reviews carefully.";
+    return 'ScamShield detected elevated risk signals. Do not share Aadhaar, PAN, bank details, contacts, or OTPs with this app. If this is a lending app, verify it is listed at rbi.org.in before proceeding.';
   }
   return 'This app shows no major red flags. Exercise normal caution — never share passwords or OTPs with any app.';
 }
@@ -166,6 +166,21 @@ export function score(profile: AppProfile, dataset: RBIDataset): ScoreResult {
   // Device admin — unconditional; used by predatory apps to block uninstallation
   if (hasPermission(profile.permissions, DEVICE_ADMIN_PERMISSIONS)) {
     const s = makeSignal('DEVICE_ADMIN', true);
+    signals.push(s);
+    rawScore += s.points;
+  }
+
+  // REQUEST_INSTALL_PACKAGES — allows silently installing other APKs; only legitimate for app stores
+  // Sideloaded apps requesting this are a classic dropper/malware vector
+  if (
+    profile.isSideloaded &&
+    hasPermission(profile.permissions, [
+      'REQUEST_INSTALL_PACKAGES',
+      'android.permission.REQUEST_INSTALL_PACKAGES',
+      'INSTALL_PACKAGES',
+    ])
+  ) {
+    const s = makeSignal('INSTALL_PACKAGES_SIDELOADED', true);
     signals.push(s);
     rawScore += s.points;
   }
