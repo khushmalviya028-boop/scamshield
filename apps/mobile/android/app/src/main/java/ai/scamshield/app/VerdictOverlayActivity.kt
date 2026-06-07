@@ -506,21 +506,64 @@ class VerdictOverlayActivity : Activity() {
             val dangerPerms = setOf(
                 "READ_CONTACTS", "READ_SMS", "RECEIVE_SMS", "READ_CALL_LOG", "PROCESS_OUTGOING_CALLS",
                 "BIND_ACCESSIBILITY_SERVICE", "BIND_DEVICE_ADMIN", "CAMERA",
-                "SYSTEM_ALERT_WINDOW", "READ_EXTERNAL_STORAGE", "ACCESS_FINE_LOCATION",
+                "SYSTEM_ALERT_WINDOW", "READ_EXTERNAL_STORAGE", "READ_MEDIA_IMAGES", "ACCESS_FINE_LOCATION",
                 "RECORD_AUDIO", "PACKAGE_USAGE_STATS", "REQUEST_INSTALL_PACKAGES",
+            )
+            val permDescriptions = mapOf(
+                "READ_CONTACTS" to "Reads your full contact list — names, numbers, and email addresses",
+                "READ_SMS" to "Reads all SMS messages — including OTPs and bank transaction alerts",
+                "RECEIVE_SMS" to "Intercepts incoming SMS in real time — can steal OTPs the moment they arrive",
+                "READ_CALL_LOG" to "Reads your full call history — who you called, when, and for how long",
+                "PROCESS_OUTGOING_CALLS" to "Can intercept and redirect your outgoing phone calls",
+                "BIND_ACCESSIBILITY_SERVICE" to "Full screen control — reads everything you type across all apps, including banking passwords and UPI PINs. Cannot be blocked by other apps.",
+                "BIND_DEVICE_ADMIN" to "Can lock your phone remotely and prevent its own uninstallation — traps you",
+                "CAMERA" to "Can take photos and record video silently — used for sextortion blackmail",
+                "SYSTEM_ALERT_WINDOW" to "Draws fake overlays on top of banking apps — used to steal credentials",
+                "READ_EXTERNAL_STORAGE" to "Reads photos, videos, downloaded files, WhatsApp/Telegram media (NOT contacts — contacts need a separate permission)",
+                "READ_MEDIA_IMAGES" to "Reads all photos and images stored on your device",
+                "ACCESS_FINE_LOCATION" to "Tracks your precise GPS location in real time",
+                "RECORD_AUDIO" to "Records audio from your microphone — can listen in on calls and conversations",
+                "PACKAGE_USAGE_STATS" to "Sees which apps you open and how long you use them",
+                "REQUEST_INSTALL_PACKAGES" to "Installs additional apps silently without your knowledge — primary dropper malware technique",
             )
             permissions.forEach { perm ->
                 val short = perm.removePrefix("android.permission.").replace("_", " ")
-                val isDangerous = dangerPerms.any { perm.uppercase().contains(it) }
-                val permColor = if (isDangerous) Color.rgb(239, 68, 68) else Color.argb(180, 255, 255, 255)
-                val icon = if (isDangerous) "⚠️ " else "•  "
-                card.addView(TextView(this).apply {
-                    text = "$icon$short"
-                    setTextColor(permColor)
-                    textSize = 12f
-                    setPadding(0, 3.dp(), 0, 3.dp())
-                    typeface = if (isDangerous) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                })
+                val permKey = dangerPerms.firstOrNull { perm.uppercase().contains(it) }
+                val isDangerous = permKey != null
+                val desc = if (isDangerous) permDescriptions.entries
+                    .firstOrNull { perm.uppercase().contains(it.key) }?.value else null
+
+                if (isDangerous) {
+                    card.addView(LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                        lp.topMargin = 6.dp()
+                        lp.bottomMargin = 2.dp()
+                        layoutParams = lp
+                        addView(TextView(this@VerdictOverlayActivity).apply {
+                            text = "⚠️  $short"
+                            setTextColor(Color.rgb(239, 68, 68))
+                            textSize = 12f
+                            typeface = Typeface.DEFAULT_BOLD
+                        })
+                        if (desc != null) {
+                            addView(TextView(this@VerdictOverlayActivity).apply {
+                                text = desc
+                                setTextColor(Color.argb(160, 255, 200, 200))
+                                textSize = 11f
+                                setLineSpacing(0f, 1.25f)
+                                setPadding(22.dp(), 2.dp(), 0, 0)
+                            })
+                        }
+                    })
+                } else {
+                    card.addView(TextView(this).apply {
+                        text = "•  $short"
+                        setTextColor(Color.argb(160, 255, 255, 255))
+                        textSize = 12f
+                        setPadding(0, 3.dp(), 0, 3.dp())
+                    })
+                }
             }
         }
 

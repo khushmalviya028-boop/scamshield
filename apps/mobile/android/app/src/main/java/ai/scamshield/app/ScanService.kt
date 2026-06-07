@@ -31,6 +31,25 @@ class ScanService : Service() {
         return false
     }
 
+    // fileName → running ticker job so we can cancel it when verdict arrives
+    private val notifTickers = mutableMapOf<String, kotlinx.coroutines.Job>()
+
+    private fun startNotificationTicker(fileName: String) {
+        notifTickers[fileName]?.cancel()
+        notifTickers[fileName] = serviceScope.launch {
+            var elapsed = 0
+            while (true) {
+                ScamNotificationManager.updateScanProgress(applicationContext, fileName, elapsed)
+                kotlinx.coroutines.delay(1000)
+                elapsed++
+            }
+        }
+    }
+
+    private fun cancelNotificationTicker(fileName: String) {
+        notifTickers.remove(fileName)?.cancel()
+    }
+
     override fun onCreate() {
         super.onCreate()
         ScamNotificationManager.createChannels(this)
@@ -53,6 +72,9 @@ class ScanService : Service() {
                     val cleanName = cleanApkFileName(path)
                     Log.d(LOG_TAG, "APK download started: $cleanName (raw=$path)")
                     ScamNotificationManager.showApkDownloadWarning(applicationContext, cleanName)
+                    // Tick notification elapsed time from download start so users see progress
+                    // even during slow downloads (overlay already has its own ticker)
+                    startNotificationTicker(cleanName)
                 }
                 // Download complete — Chrome renames .pending-*.apk → final.apk (MOVED_TO)
                 // Also catch direct CLOSE_WRITE in case some browsers skip the rename step
@@ -71,27 +93,19 @@ class ScanService : Service() {
     private fun onApkComplete(apkFile: File, baseName: String) {
         serviceScope.launch {
             kotlinx.coroutines.delay(800)
-
-            var elapsed = 0
-            val ticker = launch {
-                while (true) {
-                    ScamNotificationManager.updateScanProgress(applicationContext, baseName, elapsed)
-                    kotlinx.coroutines.delay(1000)
-                    elapsed++
-                }
-            }
-
+            // Ticker may already be running from download-start; ensure it is
+            if (notifTickers[baseName] == null) startNotificationTicker(baseName)
             try {
                 val signals = AppSignalCollector.collectFromApk(applicationContext, apkFile.absolutePath)
                     ?: AppSignals.minimal(baseName.toFakePackageId("download"), baseName, "sideloaded")
                 val result = ScamApiClient.verify(signals)
-                ticker.cancel()
+                cancelNotificationTicker(baseName)
                 ScamNotificationManager.showVerdict(
                     applicationContext, signals.appName, signals.packageId, result, signals.rawPermissions,
                     scanKey = baseName,
                 )
             } catch (e: Exception) {
-                ticker.cancel()
+                cancelNotificationTicker(baseName)
                 Log.e(LOG_TAG, "Scan failed for APK: ${apkFile.absolutePath}", e)
             }
         }
