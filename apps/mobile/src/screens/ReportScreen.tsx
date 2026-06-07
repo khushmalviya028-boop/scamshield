@@ -27,6 +27,56 @@ type Props = {
 
 const REPORT_TYPES = ['Scam', 'Harassment', 'Fake', 'Data Theft'];
 
+function buildAppleEmailBody(appName: string, packageId: string | undefined, result?: ScoreResult): string {
+  const score = result?.score ?? '?';
+  const band = result?.band ?? 'high-risk';
+  const gate = result?.gate;
+  const bandLabel = band === 'high-risk' ? 'HIGH RISK' : band === 'caution' ? 'EXERCISE CAUTION' : 'LIKELY SAFE';
+
+  const signalLines = result?.firedSignals?.length
+    ? result.firedSignals.map((s) => `• ${s.name}\n  ${s.description}`).join('\n')
+    : '• Multiple risk signals detected — see ScamShield report';
+
+  const rbiContext = (gate === 'unverified' || gate === 'unauthorized')
+    ? `\nREGULATORY CONTEXT (India)\n${'─'.repeat(26)}\nThis app operates as a digital lending platform without authorisation from the Reserve Bank of India (RBI). The RBI circular RBI/2022-23/111 governs digital lending apps operating in India. This app is NOT listed in the RBI Digital Lending App (DLA) directory, meaning it has no link to any regulated financial entity. Unregistered digital lending apps are the primary vector for loan fraud, borrower harassment, and blackmail targeting Indian users.\n`
+    : '';
+
+  return `To the App Store Trust & Safety / App Review Team,
+
+I am reporting a high-risk application that has been verified as fraudulent by ScamShield, an anti-scam platform for the Indian market (scamshield.ai).
+
+APP DETAILS
+${'─'.repeat(11)}
+Name:          ${appName}
+Bundle / ID:   ${packageId ?? 'unknown'}
+Risk Score:    ${score} / 100
+Risk Band:     ${bandLabel}
+Verified by:   ScamShield (https://scamshield.ai)
+
+RISK SIGNALS DETECTED
+${'─'.repeat(21)}
+${signalLines}
+${rbiContext}
+WHY THIS IS SERIOUS
+${'─'.repeat(19)}
+Apps of this type operating in the Indian market are associated with:
+• Unauthorised harvesting of contacts, SMS messages, and photos
+• Borrower harassment — threatening victims with morphed/intimate photos
+• Intercepting OTPs and banking credentials via Accessibility Service abuse
+• Preventing uninstallation using Device Administrator rights
+• Operating outside any regulatory framework
+
+These are not hypothetical risks — Indian law enforcement and CERT-In have documented widespread harm from apps matching this profile.
+
+REQUESTED ACTION
+${'─'.repeat(16)}
+Please investigate and remove this application. If it is already on the iOS App Store under this name or a variant, escalating removal would directly protect Indian users.
+
+Thank you for your attention to this matter.
+
+— Reported via ScamShield · scamshield.ai`;
+}
+
 function buildPlayStoreReportText(appName: string, packageId: string | undefined, result?: ScoreResult): string {
   const lines: string[] = [];
   const band = result?.band;
@@ -62,8 +112,18 @@ export default function ReportScreen({ navigation, route }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [appleSent, setAppleSent] = useState(false);
 
   const playStoreReportText = buildPlayStoreReportText(appName, packageId, result);
+  const appleEmailBody = buildAppleEmailBody(appName, packageId, result);
+  const appleEmailSubject = `Predatory App Report: ${appName}${packageId ? ` (${packageId})` : ''} — HIGH RISK`;
+
+  const handleSendAppleEmail = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const mailto = `mailto:reportphishing@apple.com?subject=${encodeURIComponent(appleEmailSubject)}&body=${encodeURIComponent(appleEmailBody)}`;
+    Linking.openURL(mailto);
+    setAppleSent(true);
+  };
 
   const handleCopyReportText = () => {
     Clipboard.setString(playStoreReportText);
@@ -220,6 +280,49 @@ export default function ReportScreen({ navigation, route }: Props) {
                 <Text style={styles.openPlayStoreBtnText}>Open on Play Store ↗</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Apple Email section */}
+          <View style={styles.appleSection}>
+            <View style={styles.appleSectionHeader}>
+              <Text style={styles.appleSectionTitle}> Email Apple to Escalate Removal</Text>
+              {appleSent && (
+                <View style={styles.sentBadge}>
+                  <Text style={styles.sentBadgeText}>✅ Sent</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.appleSectionSub}>
+              Tap below to open your email app with a complete, ready-to-send report addressed to{' '}
+              <Text style={styles.emailHighlight}>reportphishing@apple.com</Text>.
+              {'\n'}Just review and hit Send — everything is pre-filled.
+            </Text>
+
+            {/* Email preview */}
+            <View style={styles.emailPreviewBox}>
+              <View style={styles.emailPreviewHeader}>
+                <Text style={styles.emailPreviewLabel}>To</Text>
+                <Text style={styles.emailPreviewValue}>reportphishing@apple.com</Text>
+              </View>
+              <View style={[styles.emailPreviewHeader, { borderBottomWidth: 0 }]}>
+                <Text style={styles.emailPreviewLabel}>Subject</Text>
+                <Text style={styles.emailPreviewValue} numberOfLines={2}>{appleEmailSubject}</Text>
+              </View>
+              <View style={styles.emailBodyPreview}>
+                <Text style={styles.emailBodyPreviewText} numberOfLines={6}>{appleEmailBody}</Text>
+                <View style={styles.emailBodyFade} />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.appleBtn, appleSent && styles.appleBtnSent]}
+              onPress={handleSendAppleEmail}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.appleBtnText}>
+                {appleSent ? '✅  Email Client Opened — Check Your App' : '✉️  Open Email to Apple'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Submit button */}
@@ -439,6 +542,122 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: fontSize.sm,
     fontWeight: '700',
+  },
+  appleSection: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: '#1a1a2e',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#3d3d6b',
+    gap: spacing.sm,
+  },
+  appleSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  appleSectionTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    color: '#a5b4fc',
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+  sentBadge: {
+    backgroundColor: '#22C55E20',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: '#22C55E40',
+  },
+  sentBadgeText: {
+    fontSize: fontSize.xs,
+    color: colors.safe,
+    fontWeight: '700',
+  },
+  appleSectionSub: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  emailHighlight: {
+    color: '#a5b4fc',
+    fontWeight: '700',
+  },
+  emailPreviewBox: {
+    backgroundColor: '#0d0d1a',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#3d3d6b',
+    overflow: 'hidden',
+  },
+  emailPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e3f',
+  },
+  emailPreviewLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    color: '#6366F1',
+    width: 52,
+    letterSpacing: 0.5,
+    paddingTop: 1,
+  },
+  emailPreviewValue: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  emailBodyPreview: {
+    padding: spacing.sm + 4,
+    position: 'relative',
+    maxHeight: 120,
+    overflow: 'hidden',
+  },
+  emailBodyPreviewText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    lineHeight: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  emailBodyFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: 'transparent',
+  },
+  appleBtn: {
+    backgroundColor: '#4f46e5',
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  appleBtnSent: {
+    backgroundColor: '#22C55E',
+    shadowColor: '#22C55E',
+  },
+  appleBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   submitBtn: {
     marginHorizontal: spacing.md,
