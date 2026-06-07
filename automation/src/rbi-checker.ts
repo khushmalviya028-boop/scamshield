@@ -55,25 +55,15 @@ export function checkRBIGate(app: LoanApp, dataset: RBIDataset): RBIGate {
   const records = dataset.records;
   const normalizedName = normalizeName(app.appName);
 
-  // 1. Exact packageId match
-  if (records.some((r) => r.packageId === app.packageId)) return 'authorized';
+  // 1. Exact bundleId match (iOS equivalent of packageId)
+  if (app.bundleId && records.some((r) => r.packageId === app.bundleId)) return 'authorized';
 
   // 2. Exact normalized name match
   if (records.some((r) => r.normalizedDlaName === normalizedName)) return 'authorized';
 
-  // 3. Fuzzy name match — close enough = authorized (scam apps rarely use the exact DLA name)
+  // 3. Fuzzy name match
   if (records.some((r) => fuzzyMatch(normalizedName, r.normalizedDlaName))) return 'authorized';
 
-  // 4. Check lending permissions — if present and no NBFC match → unauthorized
-  const hasLendingPerms = app.permissions.some(
-    (p) =>
-      p.toLowerCase().includes('sms') ||
-      p.toLowerCase().includes('contacts') ||
-      p.toLowerCase().includes('read_contacts') ||
-      p.toLowerCase().includes('read_sms'),
-  );
-
-  if (hasLendingPerms) return 'unauthorized';
-
+  // iOS doesn't expose permissions — mark unregistered finance apps as unverified
   return 'unverified';
 }

@@ -1,22 +1,22 @@
 export interface LoanApp {
-  packageId: string;
+  trackId: number;
+  bundleId: string;
   appName: string;
   developer: string;
-  developerEmail: string;
-  developerWebsite: string;
+  developerUrl: string;
+  privacyPolicyUrl: string;
   genre: string;
   rating: number;
   ratingsCount: number;
-  installs: string;
-  released: string;
+  releaseDate: string;
   publishedDaysAgo: number | undefined;
   hasPrivacyPolicy: boolean;
-  permissions: string[];
+  hasVerifiableWebsite: boolean;
   isFinanceApp: boolean;
   burstReviews: boolean;
   harassmentReviewCount: number;
-  summary: string;
-  playStoreUrl: string;
+  description: string;
+  appStoreUrl: string;
   matchedSearchTerms: string[];
 }
 

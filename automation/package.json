@@ -1,16 +1,14 @@
 {
-  "name": "@scamshield/loan-app-scanner",
-  "version": "1.0.0",
-  "description": "Automated scanner: finds Indian cash-loan apps not on RBI DLA list and reports them",
-  "main": "src/index.ts",
+  "name": "@scamshield/ios-loan-scanner",
+  "version": "2.0.0",
+  "description": "Finds unregistered Indian lending apps on the iOS App Store, checks against RBI DLA list, emails report to Apple",
   "scripts": {
     "scan": "ts-node src/index.ts",
-    "scan:dry": "ts-node src/index.ts --dry-run",
-    "scan:no-email": "ts-node src/index.ts --no-email"
+    "scan:send": "ts-node src/index.ts --send",
+    "scan:quiet": "ts-node src/index.ts --no-preview --send"
   },
   "dependencies": {
     "dotenv": "^16.0.0",
-    "google-play-scraper": "^10.1.3",
     "nodemailer": "^6.9.0"
   },
   "devDependencies": {
