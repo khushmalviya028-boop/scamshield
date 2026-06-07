@@ -153,7 +153,7 @@ export function buildHtmlReport(apps: ScoredApp[], totalScanned: number, runDate
   <div style="background:#141826;border:1px solid #1e2436;border-radius:12px;padding:24px;margin-bottom:28px">
     <div style="font-size:11px;font-weight:800;color:#64748b;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">Methodology</div>
     <ol style="margin:0;padding-left:18px;color:#94a3b8;font-size:13px;line-height:1.9">
-      <li>Searched <strong style="color:#f1f5f9">Apple App Store (country=IN)</strong> via iTunes Search API for <strong style="color:#f1f5f9">107 loan/lending search terms</strong> in English and transliterated Hindi</li>
+      <li>Searched <strong style="color:#f1f5f9">Apple App Store (country=IN)</strong> via iTunes Search API for <strong style="color:#f1f5f9">51 cash loan search terms</strong> in English and transliterated Hindi</li>
       <li>Filtered to apps in the Finance genre or whose name/description matches lending keywords</li>
       <li>Fetched full app details (privacy policy, developer website, release date) and reviews for each</li>
       <li>Cross-checked against the <strong style="color:#f1f5f9">RBI Digital Lending App dataset</strong> using exact bundle ID, normalised name, and fuzzy matching</li>

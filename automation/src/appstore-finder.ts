@@ -1,136 +1,87 @@
 import https from 'https';
 import { LoanApp } from './types';
 
-// ── Every naming pattern predatory Indian loan apps use on the App Store ─────
 const SEARCH_TERMS = [
-  // ── Broad / generic (cast widest net) ─────────────────────────────────────
-  'loan app',
+  // Generic
   'loan app india',
-  'cash loan',
   'cash loan india',
-  'personal loan',
   'personal loan india',
-  'credit app',
-  'credit app india',
-  'lending app',
   'lending app india',
-  'borrow money',
   'borrow money india',
-  'money loan',
-  'finance loan',
-  'loan online india',
-
-  // ── Instant / speed ────────────────────────────────────────────────────────
-  'instant loan',
   'instant loan india',
   'instant cash loan',
-  'instant personal loan',
-  'instant money india',
-  'instant credit india',
-  'quick loan',
   'quick loan india',
-  'quick cash india',
-  'fast loan',
   'fast loan india',
-  'fast cash india',
-  'fast money india',
-  'same day loan india',
-  'urgent loan india',
-  'emergency loan',
   'emergency loan india',
 
-  // ── Currency / regional ────────────────────────────────────────────────────
+  // Currency / regional
   'rupee loan',
-  'rupee loan india',
   'paisa loan',
-  'paisa loan india',
   'paisa advance',
-  'rupee cash',
-  'rupee cash india',
-  'cash rupee',
-  'inr loan app',
+  'rupee cash loan',
 
-  // ── Specific loan types ────────────────────────────────────────────────────
-  'salary advance',
+  // Loan types
   'salary advance india',
   'salary loan india',
-  'salary cash india',
-  'emi loan',
   'emi loan india',
-  'short term loan',
   'short term loan india',
-  'micro loan',
   'micro loan india',
   'mini loan india',
   'small loan india',
-  'low amount loan india',
   'student loan india',
-  'education loan india',
   'business loan india',
-  'shop loan india',
-  'flexi loan',
   'flexi loan india',
-  'line of credit india',
-  'credit line india',
-  'overdraft app india',
 
-  // ── No-check / predatory patterns ─────────────────────────────────────────
-  'no cibil loan',
+  // Predatory / no-check patterns
   'no cibil loan india',
-  'low cibil loan',
   'bad credit loan india',
-  'no credit score loan',
-  'no credit check loan india',
-  'instant approval loan',
+  'instant approval loan india',
   'guaranteed loan india',
-  'aadhar loan',
-  'aadhar card loan india',
-  'pan card loan india',
+  'aadhar loan india',
   'no document loan india',
 
-  // ── App type / process ─────────────────────────────────────────────────────
+  // App type
   'online loan india',
   'mobile loan india',
-  'app loan india',
   'digital loan india',
-  'nbfc loan',
-  'nbfc app india',
-  'digital lending india',
+  'nbfc loan india',
   'fintech loan india',
 
-  // ── Hindi transliteration ──────────────────────────────────────────────────
+  // Hindi transliteration
   'tatkal loan',
-  'tatkal loan india',
   'turant loan india',
-  'naya loan',
   'asaan loan india',
   'jaldi loan india',
 
-  // ── Specific known scam brand patterns ────────────────────────────────────
+  // Known scam brand patterns
   'kredit loan',
-  'kredit india',
-  'kreditbee india',
-  'cashe loan india',
+  'kreditbee',
+  'cashe loan',
   'moneyview loan',
-  'lazypay india',
-  'stashfin india',
-  'paysense india',
-  'earlysalary india',
-  'cashkaro india',
-  'navi loan india',
-  'kissht india',
-  'moneytap india',
-  'zestmoney india',
-  'fibe loan india',
-  'jupiter credit india',
-  'slice credit india',
-  'uni card india',
+  'lazypay loan',
+  'stashfin loan',
+  'paysense loan',
+  'kissht loan',
+  'zestmoney loan',
+  'fibe loan',
+  'navi loan',
 ];
 
-const FINANCE_KEYWORDS =
-  /\b(loan|lend|credit|emi|borrow|advance|nbfc|rupee|paisa|instant money|personal loan|disburse|kredit|flexi)\b/i;
+// App NAME must contain a direct cash-lending keyword
+const CASH_LOAN_NAME =
+  /\b(loan|lend|kredit|kred|borrow|paylater|pay.later|disburse)\b|instant\s+(cash|money|loan)|cash\s+(loan|advance|now)|quick\s+(loan|cash|money|paisa)|personal\s+loan|salary\s+advance|flexi\s*(cash|loan)/i;
+
+// If the name matches any of these, it is NOT primarily a cash loan app
+const NOT_LOAN_APP =
+  /\b(calculator|bank(?:ing)?|insur(?:ance|e)|invest(?:ment|ing|or)?|mutual\s+fund|sip\b|stock|demat|broker|trad(?:e|ing)|forex|crypto|bitcoin|recharge|shop(?:ping)?|news|score\b|bureau|wallet|guide|compar(?:e|ison)|tracker|planner|monitor|report(?:ing)?|marketplace|aggregator|manager\b(?!.*loan))\b/i;
+
+// Known big non-loan platforms to skip by bundle ID prefix or developer name
+const SKIP_DEVELOPER =
+  /\b(google|amazon|flipkart|paytm|phonepe|bharat\s*pe|zerodha|upstox|angel\s*one|moneycontrol|airtel|cars24|cred(?!it\s*(sea|now|bee|plus))|hdfc\s*bank|icici\s*bank|kotak\s*bank|sbi\b|axis\s*bank|canara|punjab\s*national|bank\s*of\s*baroda|yes\s*bank|indusind|federal\s*bank|union\s*bank|indian\s*bank)\b/i;
+
 const HARASSMENT_KEYWORDS =
   /\b(harass|threat|blackmail|morphed|photo|contact.?list|expose|extort|recovery.?agent|abuse|shame|family.?member|boss|colleague)\b/i;
+
 const AGGRESSIVE_LENDING_KEYWORDS =
   /\b(no cibil|no credit check|bad credit|instant disbursal|within minutes|no document|aadhar only|pan only|guaranteed approval|no rejection)\b/i;
 
@@ -154,11 +105,27 @@ function get(url: string): Promise<any> {
   });
 }
 
+async function getWithRetry(url: string, maxRetries = 3): Promise<any> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await get(url);
+    } catch (e: any) {
+      if (attempt < maxRetries - 1) {
+        await sleep(3000 * (attempt + 1));
+      } else {
+        throw e;
+      }
+    }
+  }
+}
+
 async function fetchReviews(trackId: number): Promise<any[]> {
   try {
     const url = `https://itunes.apple.com/in/rss/customerreviews/id=${trackId}/sortBy=mostRecent/json`;
     const data = await get(url);
-    return data?.feed?.entry ?? [];
+    const entry = data?.feed?.entry;
+    if (!entry) return [];
+    return Array.isArray(entry) ? entry : [entry];
   } catch {
     return [];
   }
@@ -175,11 +142,22 @@ async function fetchAppDetails(trackId: number): Promise<any | null> {
   }
 }
 
+function isCashLoanApp(name: string, developer: string, genre: string): boolean {
+  // Must be in Finance genre
+  if (genre.toLowerCase() !== 'finance') return false;
+  // Name must have a direct lending keyword
+  if (!CASH_LOAN_NAME.test(name)) return false;
+  // Exclude if name suggests it's not a loan disburser
+  if (NOT_LOAN_APP.test(name)) return false;
+  // Exclude known non-loan platforms by developer name
+  if (SKIP_DEVELOPER.test(developer)) return false;
+  return true;
+}
+
 export async function findLoanApps(delayMs: number, maxApps: number): Promise<LoanApp[]> {
   const seen = new Map<number, LoanApp>();
 
-  // Phase 1: search all terms
-  console.log('\n📡 Phase 1: Searching App Store (iTunes API)...\n');
+  console.log('\n📡 Phase 1: Searching App Store (iPhone, country=IN)...\n');
 
   for (let i = 0; i < SEARCH_TERMS.length; i++) {
     const term = SEARCH_TERMS[i];
@@ -187,34 +165,33 @@ export async function findLoanApps(delayMs: number, maxApps: number): Promise<Lo
 
     try {
       const encoded = encodeURIComponent(term);
-      const data = await get(
-        `https://itunes.apple.com/search?term=${encoded}&country=in&entity=software&media=software&limit=200`,
+      // entity=software → iPhone/iPod touch apps only
+      const data = await getWithRetry(
+        `https://itunes.apple.com/search?term=${encoded}&country=in&entity=software&limit=200`,
       );
 
       const results: any[] = data?.results ?? [];
       let added = 0;
 
       for (const r of results) {
-        if (!r.trackId || seen.has(r.trackId)) {
-          if (seen.has(r.trackId)) {
-            seen.get(r.trackId)!.matchedSearchTerms.push(term);
-          }
+        if (!r.trackId) continue;
+
+        const name = r.trackName ?? '';
+        const developer = r.artistName ?? r.sellerName ?? '';
+        const genre = r.primaryGenreName ?? '';
+
+        if (seen.has(r.trackId)) {
+          seen.get(r.trackId)!.matchedSearchTerms.push(term);
           continue;
         }
 
-        const genre = r.primaryGenreName ?? '';
-        const isFinance =
-          genre.toLowerCase() === 'finance' ||
-          FINANCE_KEYWORDS.test(r.trackName ?? '') ||
-          FINANCE_KEYWORDS.test(r.description ?? '');
-
-        if (!isFinance) continue;
+        if (!isCashLoanApp(name, developer, genre)) continue;
 
         seen.set(r.trackId, {
           trackId: r.trackId,
           bundleId: r.bundleId ?? '',
-          appName: r.trackName ?? '',
-          developer: r.artistName ?? r.sellerName ?? '',
+          appName: name,
+          developer,
           developerUrl: r.sellerUrl ?? '',
           privacyPolicyUrl: r.privacyPolicyUrl ?? '',
           genre,
@@ -236,7 +213,7 @@ export async function findLoanApps(delayMs: number, maxApps: number): Promise<Lo
         added++;
       }
 
-      console.log(`${results.length} results, ${added} new finance apps`);
+      console.log(`${results.length} results, ${added} new cash loan apps`);
     } catch (err: any) {
       console.log(`⚠️  failed (${err.message?.slice(0, 60)})`);
     }
@@ -245,12 +222,13 @@ export async function findLoanApps(delayMs: number, maxApps: number): Promise<Lo
   }
 
   let apps = Array.from(seen.values());
+  console.log(`\n✅ Phase 1 complete: ${apps.length} unique iPhone cash loan apps found`);
+
   if (maxApps > 0 && apps.length > maxApps) {
-    console.log(`\n⚠️  Capping at ${maxApps} apps (found ${apps.length})`);
+    console.log(`⚠️  Capping at ${maxApps} apps`);
     apps = apps.slice(0, maxApps);
   }
 
-  // Phase 2: fetch reviews + full details for each app
   console.log(`\n🔬 Phase 2: Fetching details & reviews for ${apps.length} apps...\n`);
 
   for (let i = 0; i < apps.length; i++) {
@@ -272,11 +250,11 @@ export async function findLoanApps(delayMs: number, maxApps: number): Promise<Lo
     }
 
     if (reviews.status === 'fulfilled') {
-      const entries: any[] = reviews.value ?? [];
-      app.harassmentReviewCount = entries.filter((e) =>
+      const entries = reviews.value ?? [];
+      app.harassmentReviewCount = entries.filter((e: any) =>
         HARASSMENT_KEYWORDS.test(e?.content?.label ?? ''),
       ).length;
-      const fiveStars = entries.filter((e) => e?.['im:rating']?.label === '5').length;
+      const fiveStars = entries.filter((e: any) => e?.['im:rating']?.label === '5').length;
       app.burstReviews = entries.length >= 10 && fiveStars / entries.length > 0.8;
     }
 
